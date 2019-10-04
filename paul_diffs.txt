@@ -164,7 +164,7 @@ index 2fc68f91..e262bacc 100644
        }
      },
 diff --git a/base-station/gui/src/components/person-detection.vue b/base-station/gui/src/components/person-detection.vue
-index e4c177b2..702912bd 100644
+index e4c177b2..9859a00d 100644
 --- a/base-station/gui/src/components/person-detection.vue
 +++ b/base-station/gui/src/components/person-detection.vue
 @@ -45,6 +45,9 @@ const HELMET_IN_VIEW_TIMEOUT = 600
@@ -172,7 +172,7 @@ index e4c177b2..702912bd 100644
  const SCOPE_WIDTH = 2.5
  const SCOPE_HEIGHT = 2.5
 +const MOVE_RETICLE = false //if set to true, Reticle will move around person, else person moves reticle stay in center
-+const MESH_SCALE_FACTOR = 5
++const MESH_SCALE_FACTOR = 2
 +const MESH_SCALE_TO_METERS = 1.5
  
  const MODES = {
@@ -368,7 +368,7 @@ index e4c177b2..702912bd 100644
 +			
 +			}else{
 +			//move mesh in inverse direction
-+				this.movePersonGivenReticlePosition(x, y)
++				this.movePersonGivenReticlePosition(x/SCOPE_WIDTH, y/SCOPE_HEIGHT)
 +            }
 +			return true
          },
@@ -392,11 +392,11 @@ index e4c177b2..702912bd 100644
 +			if(this.person){
 +				let extent = this.person.rootMesh.getBoundingInfo().boundingBox.extendSize
 +				extent.scale(2)
-+				let yOffset = -0.90
++				let yOffset = -0.95
 +				//mesh sits  on xz plane
-+				this.person.rootMesh.position.x = x * extent.x * ( MESH_SCALE_FACTOR ) 
++				this.person.rootMesh.position.x = x * extent.x * ( 2*MESH_SCALE_FACTOR ) 
 +				//move down as reticle moves  up
-+				this.person.rootMesh.position.z = ( yOffset-y ) * extent.z * (MESH_SCALE_FACTOR )
++				this.person.rootMesh.position.z = ( -y + yOffset) * extent.z * (2*MESH_SCALE_FACTOR )
 +            }
 +		},
          updateHitpoint(){
