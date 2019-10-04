@@ -164,7 +164,7 @@ index 2fc68f91..e262bacc 100644
        }
      },
 diff --git a/base-station/gui/src/components/person-detection.vue b/base-station/gui/src/components/person-detection.vue
-index e4c177b2..27d4c999 100644
+index e4c177b2..702912bd 100644
 --- a/base-station/gui/src/components/person-detection.vue
 +++ b/base-station/gui/src/components/person-detection.vue
 @@ -45,6 +45,9 @@ const HELMET_IN_VIEW_TIMEOUT = 600
@@ -394,9 +394,9 @@ index e4c177b2..27d4c999 100644
 +				extent.scale(2)
 +				let yOffset = -0.90
 +				//mesh sits  on xz plane
-+				this.person.rootMesh.position.x = x * extent.x * ( 2*MESH_SCALE_FACTOR ) 
++				this.person.rootMesh.position.x = x * extent.x * ( MESH_SCALE_FACTOR ) 
 +				//move down as reticle moves  up
-+				this.person.rootMesh.position.z = ( yOffset-y ) * extent.z * (2*MESH_SCALE_FACTOR )
++				this.person.rootMesh.position.z = ( yOffset-y ) * extent.z * (MESH_SCALE_FACTOR )
 +            }
 +		},
          updateHitpoint(){
