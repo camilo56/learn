@@ -164,20 +164,23 @@ index 2fc68f91..e262bacc 100644
        }
      },
 diff --git a/base-station/gui/src/components/person-detection.vue b/base-station/gui/src/components/person-detection.vue
-index e4c177b2..9859a00d 100644
+index e4c177b2..fb138c43 100644
 --- a/base-station/gui/src/components/person-detection.vue
 +++ b/base-station/gui/src/components/person-detection.vue
-@@ -45,6 +45,9 @@ const HELMET_IN_VIEW_TIMEOUT = 600
+@@ -45,6 +45,12 @@ const HELMET_IN_VIEW_TIMEOUT = 600
  const FIDUCIAL_IN_VIEW_TIMEOUT = 600
  const SCOPE_WIDTH = 2.5
  const SCOPE_HEIGHT = 2.5
 +const MOVE_RETICLE = false //if set to true, Reticle will move around person, else person moves reticle stay in center
-+const MESH_SCALE_FACTOR = 2
-+const MESH_SCALE_TO_METERS = 1.5
++const MESH_SCALE_FACTOR = 6
++//Scale factors that map hitpoints from model space to meter space
++const PERSON_WIDTH_IN_METERS = 0.65
++const PERSON_HEIGHT_IN_METERS =1.895 //model is slightly shorter than mannequin. so width is nearly accurate. height is off a little more
++
  
  const MODES = {
      THREAT: {id: 'threat', color: new Color3(0,1,0)},
-@@ -133,7 +136,6 @@ export default{
+@@ -133,7 +139,6 @@ export default{
              this.loggedCalibrationWarning  = false
  
              this.loadScene()
@@ -185,7 +188,7 @@ index e4c177b2..9859a00d 100644
          },
          clamp(x, min, max) {
              return Math.min(Math.max(x, min), max)
-@@ -175,7 +177,10 @@ export default{
+@@ -175,7 +180,10 @@ export default{
              }else{
                  this.meshMaterial = this.renderer.createStandardMaterial('Mesh Material')
                  this.meshMaterial.onBind = () => {
@@ -197,7 +200,7 @@ index e4c177b2..9859a00d 100644
                  }
              }
              this.customPostProcess = this.renderer.createPostProcess(
-@@ -196,13 +201,14 @@ export default{
+@@ -196,13 +204,14 @@ export default{
                  //samplers
                  ['uiSampler', 'sceneSampler']
              )
@@ -218,7 +221,7 @@ index e4c177b2..9859a00d 100644
  
                  effect.setInt('showOutline',    TARGET_OUTLINE)
                  effect.setInt('filled',         TARGET_FILL)
-@@ -211,12 +217,17 @@ export default{
+@@ -211,12 +220,17 @@ export default{
                  effect.setFloat2('screenSize', this.customPostProcess.width * postProcessSampleSize, this.customPostProcess.height * postProcessSampleSize)
                  effect.setTexture('depthSampler', this.renderer.getDepthTexture())
              }
@@ -237,14 +240,12 @@ index e4c177b2..9859a00d 100644
          },
          animateCrouchBy(percentage){
              return
-@@ -285,19 +296,32 @@ export default{
+@@ -285,19 +299,30 @@ export default{
              this.renderer.scene.dispose()
              this.renderer.scene = scene
              this.camera = scene.cameras[0]
 +			console.log(this.camera.position)
-+			//this.camera.position.z = 10 //move closer
-+console.log(this.camera.position)
-+			
++		
              this.camera.name = 'camera0'
 -
 -            scene.setActiveCameraByName('camera0')
@@ -273,10 +274,11 @@ index e4c177b2..9859a00d 100644
                  if(isRoot){
                      isRoot = false
                      rootMesh = mesh
-@@ -310,6 +334,10 @@ export default{
+@@ -310,6 +335,11 @@ export default{
                  mesh.material = this.meshMaterial
              })
              scene.addMesh(rootMesh)
++
 +			rootMesh.scaling = new Vector3(MESH_SCALE_FACTOR,MESH_SCALE_FACTOR,MESH_SCALE_FACTOR)
 +			
 +			
@@ -284,13 +286,14 @@ index e4c177b2..9859a00d 100644
              this.person = {
                  isAnimating                   : false,
                  isCrouching                   : false,
-@@ -323,7 +351,12 @@ export default{
+@@ -323,7 +353,13 @@ export default{
                  playCrouchIdleAnimation       : this.makeAnimation(105, 180, true, 1.0),
              }
  
 -            this.renderer.run()
 +			
 +			this.person.rootMesh.getBoundingInfo().boundingBox.reConstruct(min, max)
++			console.log(this.person.rootMesh.getBoundingInfo().boundingBox)
 +			if(!MOVE_RETICLE)
 +				this.movePersonGivenReticlePosition(0,0)
 +			
@@ -298,7 +301,7 @@ index e4c177b2..9859a00d 100644
          },
          //called in pre-render to demo/debug functionality
          demoPreRender(){
-@@ -355,12 +388,20 @@ export default{
+@@ -355,12 +391,20 @@ export default{
              else {
                  this.updateHitpoint()
              }
@@ -319,7 +322,7 @@ index e4c177b2..9859a00d 100644
          },
          isReticleWithinTarget(){
              //use the depth buffer. not if depth === 1 then far back int the scene
-@@ -378,8 +419,8 @@ export default{
+@@ -378,8 +422,8 @@ export default{
              const reticleU = Math.floor(this.reticle.x * size.width)
              //WebGL Texture coordinates have origin at bottom-left. Reticle is in DOM space which is origin at top-left
              const reticleV = Math.floor((1.0 - this.reticle.y) * size.height)
@@ -330,7 +333,7 @@ index e4c177b2..9859a00d 100644
              let testU, testV
              for(let offV = -radiusV; offV < radiusV; offV+=2 ){
                  for(let offU = -radiusU ; offU < radiusU; offU+=2 ){
-@@ -548,32 +589,53 @@ export default{
+@@ -548,32 +592,56 @@ export default{
          },
          //x, y in meters
          setReticleFromHitpoint(x,y){
@@ -368,7 +371,7 @@ index e4c177b2..9859a00d 100644
 +			
 +			}else{
 +			//move mesh in inverse direction
-+				this.movePersonGivenReticlePosition(x/SCOPE_WIDTH, y/SCOPE_HEIGHT)
++				this.movePersonGivenReticlePosition(x, y)
 +            }
 +			return true
          },
@@ -390,13 +393,16 @@ index e4c177b2..9859a00d 100644
          },
 +		movePersonGivenReticlePosition(x,y){
 +			if(this.person){
++				//Note mesh sits  on xz plane
 +				let extent = this.person.rootMesh.getBoundingInfo().boundingBox.extendSize
-+				extent.scale(2)
-+				let yOffset = -0.95
-+				//mesh sits  on xz plane
-+				this.person.rootMesh.position.x = x * extent.x * ( 2*MESH_SCALE_FACTOR ) 
-+				//move down as reticle moves  up
-+				this.person.rootMesh.position.z = ( -y + yOffset) * extent.z * (2*MESH_SCALE_FACTOR )
++				let modelSize = extent.scale(2*MESH_SCALE_FACTOR).z
++				//Meters to model space
++				this.person.rootMesh.position.x = (-x *modelSize / PERSON_WIDTH_IN_METERS )
++				this.person.rootMesh.position.z = -modelSize*1.25 //move model down such that origin is about head
++				this.person.rootMesh.position.z += (-y *  modelSize / PERSON_HEIGHT_IN_METERS )
++				
++				this.person.rootMesh.position.scale( Math.abs(this.camera.y - this.person.rootMesh.position.y) )
++				
 +            }
 +		},
          updateHitpoint(){
@@ -425,7 +431,7 @@ index b3343951..0f75e97b 100644
          update(data) {
              this.targets = data.targets.map(t => {
 diff --git a/base-station/gui/src/services/render3d.js b/base-station/gui/src/services/render3d.js
-index a9a255a7..0dcd3f1f 100644
+index a9a255a7..c2ed1a71 100644
 --- a/base-station/gui/src/services/render3d.js
 +++ b/base-station/gui/src/services/render3d.js
 @@ -12,7 +12,7 @@ import { Effect, ShaderMaterial, StandardMaterial } from '@babylonjs/core/Materi
@@ -437,7 +443,15 @@ index a9a255a7..0dcd3f1f 100644
  // Needed to enable scene.enableDepthRendering()
  import { DepthRenderer } from '@babylonjs/core/Rendering'
  import { Scene } from '@babylonjs/core/scene'
-@@ -109,9 +109,11 @@ class Renderer {
+@@ -50,6 +50,7 @@ class Renderer {
+         this.isValid  = true
+ 
+     }
++	
+     run(){
+         this.pipelineStages.forEach( (pipeline) => {
+             //recompile pipeline for any newly added cameras
+@@ -109,9 +110,11 @@ class Renderer {
          this.engine.setHardwareScalingLevel(1.0/level) 
      }
      enableDepthRender(){
@@ -500,7 +514,7 @@ index 10eaa837..3aecd994 100644
      
  
 diff --git a/base-station/server/calibration/default.json b/base-station/server/calibration/default.json
-index b55cdedd..96613bbc 100644
+index b55cdedd..ef9c3a57 100644
 --- a/base-station/server/calibration/default.json
 +++ b/base-station/server/calibration/default.json
 @@ -38,13 +38,13 @@
@@ -511,9 +525,9 @@ index b55cdedd..96613bbc 100644
 -            "y": 480,
 -            "time": 0,
 -            "deviceID": 0
-+            "x": -558,
-+            "y": 583,
-+            "time": 1570145942284,
++            "x": -559,
++            "y": 612,
++            "time": 1570220143841,
 +            "deviceID": "222"
          },
          "distance": {
