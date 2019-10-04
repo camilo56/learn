@@ -1,0 +1,593 @@
+diff --git a/base-station/gui/package-lock.json b/base-station/gui/package-lock.json
+index 2fc68f91..e262bacc 100644
+--- a/base-station/gui/package-lock.json
++++ b/base-station/gui/package-lock.json
+@@ -3886,7 +3886,8 @@
+         "ansi-regex": {
+           "version": "2.1.1",
+           "bundled": true,
+-          "dev": true
++          "dev": true,
++          "optional": true
+         },
+         "aproba": {
+           "version": "1.2.0",
+@@ -3907,12 +3908,14 @@
+         "balanced-match": {
+           "version": "1.0.0",
+           "bundled": true,
+-          "dev": true
++          "dev": true,
++          "optional": true
+         },
+         "brace-expansion": {
+           "version": "1.1.11",
+           "bundled": true,
+           "dev": true,
++          "optional": true,
+           "requires": {
+             "balanced-match": "^1.0.0",
+             "concat-map": "0.0.1"
+@@ -3927,17 +3930,20 @@
+         "code-point-at": {
+           "version": "1.1.0",
+           "bundled": true,
+-          "dev": true
++          "dev": true,
++          "optional": true
+         },
+         "concat-map": {
+           "version": "0.0.1",
+           "bundled": true,
+-          "dev": true
++          "dev": true,
++          "optional": true
+         },
+         "console-control-strings": {
+           "version": "1.1.0",
+           "bundled": true,
+-          "dev": true
++          "dev": true,
++          "optional": true
+         },
+         "core-util-is": {
+           "version": "1.0.2",
+@@ -4054,7 +4060,8 @@
+         "inherits": {
+           "version": "2.0.3",
+           "bundled": true,
+-          "dev": true
++          "dev": true,
++          "optional": true
+         },
+         "ini": {
+           "version": "1.3.5",
+@@ -4066,6 +4073,7 @@
+           "version": "1.0.0",
+           "bundled": true,
+           "dev": true,
++          "optional": true,
+           "requires": {
+             "number-is-nan": "^1.0.0"
+           }
+@@ -4080,6 +4088,7 @@
+           "version": "3.0.4",
+           "bundled": true,
+           "dev": true,
++          "optional": true,
+           "requires": {
+             "brace-expansion": "^1.1.7"
+           }
+@@ -4087,12 +4096,14 @@
+         "minimist": {
+           "version": "0.0.8",
+           "bundled": true,
+-          "dev": true
++          "dev": true,
++          "optional": true
+         },
+         "minipass": {
+           "version": "2.3.5",
+           "bundled": true,
+           "dev": true,
++          "optional": true,
+           "requires": {
+             "safe-buffer": "^5.1.2",
+             "yallist": "^3.0.0"
+@@ -4111,6 +4122,7 @@
+           "version": "0.5.1",
+           "bundled": true,
+           "dev": true,
++          "optional": true,
+           "requires": {
+             "minimist": "0.0.8"
+           }
+@@ -4191,7 +4203,8 @@
+         "number-is-nan": {
+           "version": "1.0.1",
+           "bundled": true,
+-          "dev": true
++          "dev": true,
++          "optional": true
+         },
+         "object-assign": {
+           "version": "4.1.1",
+@@ -4203,6 +4216,7 @@
+           "version": "1.4.0",
+           "bundled": true,
+           "dev": true,
++          "optional": true,
+           "requires": {
+             "wrappy": "1"
+           }
+@@ -4288,7 +4302,8 @@
+         "safe-buffer": {
+           "version": "5.1.2",
+           "bundled": true,
+-          "dev": true
++          "dev": true,
++          "optional": true
+         },
+         "safer-buffer": {
+           "version": "2.1.2",
+@@ -4324,6 +4339,7 @@
+           "version": "1.0.2",
+           "bundled": true,
+           "dev": true,
++          "optional": true,
+           "requires": {
+             "code-point-at": "^1.0.0",
+             "is-fullwidth-code-point": "^1.0.0",
+@@ -4343,6 +4359,7 @@
+           "version": "3.0.1",
+           "bundled": true,
+           "dev": true,
++          "optional": true,
+           "requires": {
+             "ansi-regex": "^2.0.0"
+           }
+@@ -4386,12 +4403,14 @@
+         "wrappy": {
+           "version": "1.0.2",
+           "bundled": true,
+-          "dev": true
++          "dev": true,
++          "optional": true
+         },
+         "yallist": {
+           "version": "3.0.3",
+           "bundled": true,
+-          "dev": true
++          "dev": true,
++          "optional": true
+         }
+       }
+     },
+diff --git a/base-station/gui/src/components/person-detection.vue b/base-station/gui/src/components/person-detection.vue
+index e4c177b2..27d4c999 100644
+--- a/base-station/gui/src/components/person-detection.vue
++++ b/base-station/gui/src/components/person-detection.vue
+@@ -45,6 +45,9 @@ const HELMET_IN_VIEW_TIMEOUT = 600
+ const FIDUCIAL_IN_VIEW_TIMEOUT = 600
+ const SCOPE_WIDTH = 2.5
+ const SCOPE_HEIGHT = 2.5
++const MOVE_RETICLE = false //if set to true, Reticle will move around person, else person moves reticle stay in center
++const MESH_SCALE_FACTOR = 5
++const MESH_SCALE_TO_METERS = 1.5
+ 
+ const MODES = {
+     THREAT: {id: 'threat', color: new Color3(0,1,0)},
+@@ -133,7 +136,6 @@ export default{
+             this.loggedCalibrationWarning  = false
+ 
+             this.loadScene()
+-
+         },
+         clamp(x, min, max) {
+             return Math.min(Math.max(x, min), max)
+@@ -175,7 +177,10 @@ export default{
+             }else{
+                 this.meshMaterial = this.renderer.createStandardMaterial('Mesh Material')
+                 this.meshMaterial.onBind = () => {
+-                    this.meshMaterial.diffuseColor = this.targetMode.color.scale(.42)
++                    this.meshMaterial.diffuseColor = this.targetMode.color.scale(.58)
++                    this.meshMaterial.specularColor = new Color3(0,0,0) //no spec highlights
++                    //this.meshMaterial.emissiveColor = this.targetMode.color
++                    //this.meshMaterial.ambientColor = this.targetMode.color.scale(.04)
+                 }
+             }
+             this.customPostProcess = this.renderer.createPostProcess(
+@@ -196,13 +201,14 @@ export default{
+                 //samplers
+                 ['uiSampler', 'sceneSampler']
+             )
+-            const postProcessSampleSize = 0.25
++            const postProcessSampleSize = 0.95
+             //Bind all uniforms needed by the shader after the shader is bound to the render context
+-            this.customPostProcess.onApply =  (effect) => {
+-                effect.setInt('glowKernelSize',  5   )
+-                effect.setFloat('glowSigma',     0.78 )
+-                effect.setFloat('glowThreshold', 0.98  )
+-                effect.setFloat('glowSampleSize',  0.5    )
++				
++			this.customPostProcess.onApply =  (effect) => {
++                effect.setInt('glowKernelSize',  2   )
++                effect.setFloat('glowSigma',     0.998 )
++                effect.setFloat('glowThreshold', 0.5  )
++                effect.setFloat('glowSampleSize',  0.25    )
+ 
+                 effect.setInt('showOutline',    TARGET_OUTLINE)
+                 effect.setInt('filled',         TARGET_FILL)
+@@ -211,12 +217,17 @@ export default{
+                 effect.setFloat2('screenSize', this.customPostProcess.width * postProcessSampleSize, this.customPostProcess.height * postProcessSampleSize)
+                 effect.setTexture('depthSampler', this.renderer.getDepthTexture())
+             }
+-
++			
++			//this.highlight = this.renderer.createHighlight("highlight")
++			//this.highlight.innerGlow = false
++			
++			
+             this.uiPostProcess.onApply =  (effect) => {
+                 effect.setTextureFromPostProcessOutput('sceneSampler', this.customPostProcess)
+                 effect.setTexture('uiSampler', this.uiTexture)
+                 effect.setColor3('reticleColor', RETICLE_COLOR)
+             }
++			
+         },
+         animateCrouchBy(percentage){
+             return
+@@ -285,19 +296,32 @@ export default{
+             this.renderer.scene.dispose()
+             this.renderer.scene = scene
+             this.camera = scene.cameras[0]
++			console.log(this.camera.position)
++			//this.camera.position.z = 10 //move closer
++console.log(this.camera.position)
++			
+             this.camera.name = 'camera0'
+-
+-            scene.setActiveCameraByName('camera0')
++			this.camera.mode = this.camera.ORTHOGRAPHIC_CAMERA 
++			scene.setActiveCameraByName('camera0')
+             this.renderer.enableDepthRender()
+ 
+             this.renderTarget = this.renderer.createRenderTarget('renderTarget', this.renderer.getWidth(),this.renderer.getHeight() )
+ 
+             this.initUI()
+             this.initShaders()
+-
++			
++			this.renderer.createAntiAliasing(this.camera)
++			
+             let isRoot = true
+             let rootMesh
++			let min = null
++			let	max = null
+             scene.meshes.forEach( (mesh)  =>{
++			
++				let bbox = mesh.getBoundingInfo().boundingBox
++				
++				min = min == null || bbox.minimum < min ? bbox.minimum  : min
++				max = max == null || bbox.maximum > max ? bbox.maximum  : max 
+                 if(isRoot){
+                     isRoot = false
+                     rootMesh = mesh
+@@ -310,6 +334,10 @@ export default{
+                 mesh.material = this.meshMaterial
+             })
+             scene.addMesh(rootMesh)
++			rootMesh.scaling = new Vector3(MESH_SCALE_FACTOR,MESH_SCALE_FACTOR,MESH_SCALE_FACTOR)
++			
++			
++			
+             this.person = {
+                 isAnimating                   : false,
+                 isCrouching                   : false,
+@@ -323,7 +351,12 @@ export default{
+                 playCrouchIdleAnimation       : this.makeAnimation(105, 180, true, 1.0),
+             }
+ 
+-            this.renderer.run()
++			
++			this.person.rootMesh.getBoundingInfo().boundingBox.reConstruct(min, max)
++			if(!MOVE_RETICLE)
++				this.movePersonGivenReticlePosition(0,0)
++			
++			this.renderer.run()
+         },
+         //called in pre-render to demo/debug functionality
+         demoPreRender(){
+@@ -355,12 +388,20 @@ export default{
+             else {
+                 this.updateHitpoint()
+             }
++			let prevTargetMode = this.targetMode
+             if(this.killed){
+                 this.targetMode = MODES.HIT
+             }
+             else {
+                 this.targetMode = this.isReticleWithinTarget() ? MODES.AIM : MODES.THREAT
+             }
++			/*if(this.targetMode != prevTargetMode){
++				this.person.meshes.forEach( (mesh)=>{ 
++					this.highlight.removeMesh(mesh) 
++					this.highlight.addMesh(mesh, this.targetMode.color)
++				})
++				
++			}*/
+         },
+         isReticleWithinTarget(){
+             //use the depth buffer. not if depth === 1 then far back int the scene
+@@ -378,8 +419,8 @@ export default{
+             const reticleU = Math.floor(this.reticle.x * size.width)
+             //WebGL Texture coordinates have origin at bottom-left. Reticle is in DOM space which is origin at top-left
+             const reticleV = Math.floor((1.0 - this.reticle.y) * size.height)
+-            const radiusU =  Math.floor(this.reticle.widthInPixels / 2.0)
+-            const radiusV =  Math.floor(this.reticle.heightInPixels / 2.0)
++            const radiusU =  Math.floor(this.reticle.widthInPixels / 4.0)
++            const radiusV =  Math.floor(this.reticle.heightInPixels / 4.0)
+             let testU, testV
+             for(let offV = -radiusV; offV < radiusV; offV+=2 ){
+                 for(let offU = -radiusU ; offU < radiusU; offU+=2 ){
+@@ -548,32 +589,53 @@ export default{
+         },
+         //x, y in meters
+         setReticleFromHitpoint(x,y){
+-            const beaconX = 0.5 // [0,1] screenspace
+-            const beaconY = 0.2 // [0,1]
+ 
+-            //TODO calculate meter to pixel mapping based on scope field of view and ragne distance. As of now, we are assuming 15 meter square
+-            let retX = beaconX + ( (-1 * x) / SCOPE_WIDTH )
+-            let retY = beaconY - (y / SCOPE_HEIGHT)
+-            if(retX < 0 || retX > 1 || retY < 0 || retY > 1)
+-            {
+-                //If hitpoint is outside range. Set Arrow indicator to be in the direction
+-                this.arrowScreenXY ={x : retX, y :retY }
+-                return false
+-            }
+-            this.setArrowPosition(-1,-1)
+-            this.setReticlePosition(retX,retY)
+-            return true
++			if(MOVE_RETICLE){
++			    const beaconX = 0.5 // [0,1] screenspace
++				const beaconY = 0.2 // [0,1]
++
++				//TODO calculate meter to pixel mapping based on scope field of view and ragne distance. As of now, we are assuming 15 meter square
++				let retX = beaconX + ( (-1 * x) / SCOPE_WIDTH )
++				let retY = beaconY - (y / SCOPE_HEIGHT)
++				
++				if(retX < 0 || retX > 1 || retY < 0 || retY > 1)
++				{
++					//If hitpoint is outside range. Set Arrow indicator to be in the direction
++					this.arrowScreenXY ={x : retX, y :retY }
++					return false
++				}
++				this.setReticlePosition(retX,retY)
++				this.setArrowPosition(-1,-1)
++			
++			}else{
++			//move mesh in inverse direction
++				this.movePersonGivenReticlePosition(x, y)
++            }
++			return true
+         },
++		
+         setOutOfRange(){
+-            this.setReticlePosition(-100,-100)
+-            //this.targetInRange = false
+-            this.setArrowPosition(this.arrowScreenXY.x, this.arrowScreenXY.y)
+-            if(this.hitpoint){
++		    if(MOVE_RETICLE){
++				this.setReticlePosition(-100,-100)
++            	this.setArrowPosition(this.arrowScreenXY.x, this.arrowScreenXY.y)
++            }
++			if(this.hitpoint){
+ 
+                 this.arrow.isVisible = true
+             }
+             this.killed = false
+         },
++		movePersonGivenReticlePosition(x,y){
++			if(this.person){
++				let extent = this.person.rootMesh.getBoundingInfo().boundingBox.extendSize
++				extent.scale(2)
++				let yOffset = -0.90
++				//mesh sits  on xz plane
++				this.person.rootMesh.position.x = x * extent.x * ( 2*MESH_SCALE_FACTOR ) 
++				//move down as reticle moves  up
++				this.person.rootMesh.position.z = ( yOffset-y ) * extent.z * (2*MESH_SCALE_FACTOR )
++            }
++		},
+         updateHitpoint(){
+             // Check if hitpoint in view
+             let inView = this.renderHitpoint()
+diff --git a/base-station/gui/src/components/uv-view.vue b/base-station/gui/src/components/uv-view.vue
+index b3343951..0f75e97b 100644
+--- a/base-station/gui/src/components/uv-view.vue
++++ b/base-station/gui/src/components/uv-view.vue
+@@ -28,7 +28,7 @@
+ 
+ <script>
+ 
+-const SCREEN_SIZE = [1280, 960]
++const SCREEN_SIZE = [960, 1280]
+ 
+ export default {
+     props: {
+@@ -86,7 +86,7 @@ export default {
+             }
+         },
+         transform([x, y]) {
+-            return [x * this.scale[0], y * this.scale[1]]
++            return [ (SCREEN_SIZE[1]-y) * this.scale[0], x * this.scale[1]]
+         },
+         update(data) {
+             this.targets = data.targets.map(t => {
+diff --git a/base-station/gui/src/services/render3d.js b/base-station/gui/src/services/render3d.js
+index a9a255a7..0dcd3f1f 100644
+--- a/base-station/gui/src/services/render3d.js
++++ b/base-station/gui/src/services/render3d.js
+@@ -12,7 +12,7 @@ import { Effect, ShaderMaterial, StandardMaterial } from '@babylonjs/core/Materi
+ import { RenderTargetTexture, Texture } from '@babylonjs/core/Materials/Textures'
+ import { Mesh } from '@babylonjs/core/Meshes'
+ import { AssetsManager } from '@babylonjs/core/Misc'
+-import { DefaultRenderingPipeline, PostProcess } from '@babylonjs/core/PostProcesses'
++import { DefaultRenderingPipeline, PostProcess, FxaaPostProcess } from '@babylonjs/core/PostProcesses'
+ // Needed to enable scene.enableDepthRendering()
+ import { DepthRenderer } from '@babylonjs/core/Rendering'
+ import { Scene } from '@babylonjs/core/scene'
+@@ -109,9 +109,11 @@ class Renderer {
+         this.engine.setHardwareScalingLevel(1.0/level) 
+     }
+     enableDepthRender(){
+-        this.depthRenderer  = this.scene.enableDepthRenderer() 
+-        
++        this.depthRenderer  = this.scene.enableDepthRenderer()   
+     }
++	createAntiAliasing(camera){
++		return new FxaaPostProcess("fxaa", 1.0, camera);
++	}
+     getDepthTexture(){
+         return this.depthRenderer.getDepthMap()
+     }
+diff --git a/base-station/gui/src/services/simulatedFire.js b/base-station/gui/src/services/simulatedFire.js
+index 74280a1b..8a7c8f77 100644
+--- a/base-station/gui/src/services/simulatedFire.js
++++ b/base-station/gui/src/services/simulatedFire.js
+@@ -36,6 +36,7 @@ class SimulatedFire  extends EventEmitter {
+     }
+     emitHitpoint(data){
+         data = data.silhouetteData
++	
+                 
+         let hitpoint = null
+         //If helmet beacon is null, then no hitpoint
+diff --git a/base-station/gui/src/shaders/customPostProcess.fragment.fx b/base-station/gui/src/shaders/customPostProcess.fragment.fx
+index 10eaa837..3aecd994 100644
+--- a/base-station/gui/src/shaders/customPostProcess.fragment.fx
++++ b/base-station/gui/src/shaders/customPostProcess.fragment.fx
+@@ -46,14 +46,15 @@ vec3 blur(sampler2D tex, vec2 uv,  vec2 direction, float texelSize, int kernelSi
+ vec4 calcOutlineGlow(vec4 baseColor, vec3 outlineColor, int isFilled, vec2 uv, vec2 texelSize, ivec2 kernelSize, float sigma, float threshold )
+ {   
+     vec4 totalColor = vec4(0); //default
+-    vec3 blur = blur(depthSampler, uv, vec2(1.0,0.0), texelSize.x, kernelSize.x, sigma) ;
+-
+-    blur = vec3(1) - blur;
+-    float blurFactor = abs(dot(blur, blur));
++    vec3 blurAmt = blur(depthSampler, uv, vec2(1.0,0.0), texelSize.x, kernelSize.x, sigma) ;
++	blurAmt += blur(depthSampler, uv, vec2(0.0,1.0), texelSize.y, kernelSize.y, sigma) ;
++	blurAmt /= 2.0;
++    blurAmt = vec3(1) - blurAmt;
++    float blurFactor = abs(dot(blurAmt, blurAmt));
+     
+      if( (blurFactor) > 0.0 && blurFactor < threshold )
+      {   
+-         vec4 glow = vec4( blur * outlineColor, blurFactor );
++         vec4 glow = vec4( blurAmt * outlineColor, blurFactor );
+          totalColor = glow; //vec4(baseColor.rgb, blurFactor) + glow;
+      }
+      else if(filled > 0)
+@@ -69,7 +70,9 @@ vec4 calcOutlineGlow(vec4 baseColor, vec3 outlineColor, int isFilled, vec2 uv, v
+ void main(void)
+ {
+     vec4 baseColor = texture2D(textureSampler, vUV) ;
+-    vec4 color = baseColor ;         //default
++    gl_FragColor =  baseColor;
++	return;
++	vec4 color = baseColor ;         //default
+ 
+     
+ 
+diff --git a/base-station/server/calibration/default.json b/base-station/server/calibration/default.json
+index b55cdedd..96613bbc 100644
+--- a/base-station/server/calibration/default.json
++++ b/base-station/server/calibration/default.json
+@@ -38,13 +38,13 @@
+             "deviceID": 0
+         },
+         "camPoint": {
+-            "x": 630,
+-            "y": 480,
+-            "time": 0,
+-            "deviceID": 0
++            "x": -558,
++            "y": 583,
++            "time": 1570145942284,
++            "deviceID": "222"
+         },
+         "distance": {
+-            "value": 20
++            "value": 6
+         }
+     }
+ }
+\ No newline at end of file
+diff --git a/base-station/server/event-actions.js b/base-station/server/event-actions.js
+index abd4190e..d7d6d448 100644
+--- a/base-station/server/event-actions.js
++++ b/base-station/server/event-actions.js
+@@ -288,6 +288,8 @@ async function simulateFireTradeShow(data, gameState) {
+         
+         for (let point of data.targets) {
+             if (point.pattern_id != null && point.pattern_id == gameState.devices[targetDeviceID].pattern) {
++				
++				console.log(`Point Location ${point.location[0]}, ${point.location[1]}`)
+                 
+                 let targetPixel = {
+                     x: -point.location[1],
+@@ -303,6 +305,7 @@ async function simulateFireTradeShow(data, gameState) {
+                     y: (targetPixel.y - reticlePixel.y) * metersPerPixel + bulletDrop, // meters
+                     z: range
+                 }
++				
+                 
+                 silhouetteData = {
+                     time: time,
+diff --git a/base-station/server/index.js b/base-station/server/index.js
+index 3ea5cdce..245727e0 100755
+--- a/base-station/server/index.js
++++ b/base-station/server/index.js
+@@ -33,8 +33,9 @@ const main = function(args) {
+     }
+     
+     // Start Time Server
++	let TServer = null
+     if (args.trade_show) {
+-        new TimeServer({ broadcastIP: args.time_broadcast_ip, broadcastPort: args.time_broadcast_port, interval: args.time_broadcast_interval })
++        TServer = new TimeServer({ broadcastIP: args.time_broadcast_ip, broadcastPort: args.time_broadcast_port, interval: args.time_broadcast_interval })
+     }
+ 
+     // Load existing calibration
+@@ -56,6 +57,12 @@ const main = function(args) {
+     // Point data from the camera
+     wsClients.on('target/points', (data, client) => {
+         data.time = new Date(data.time)
++		
++		// If we're in sync, stop sending sync messages
++		if (data.targets.length > 0) {
++			console.log('Target Seen')
++			//TServer.stop()
++		}
+         
+         // TODO: for now, assume there's only one active weapon
+         //       we are effectively treating the camera (or the tx2) as if it has the same device ID as the weapon's feather
+diff --git a/base-station/server/time-server/index.js b/base-station/server/time-server/index.js
+index d63adec2..cf6f10a3 100644
+--- a/base-station/server/time-server/index.js
++++ b/base-station/server/time-server/index.js
+@@ -1,5 +1,5 @@
+ const dgram = require('dgram')
+-const { encodePacket } = require('../protocol')
++const { encodePacket, decodePacket } = require('../protocol')
+ 
+ const TIME_SERVER_MSG_TYPE = 'serverTime'
+ 
+@@ -17,6 +17,7 @@ class TimeServer {
+     }
+     broadcast() {
+         const msg = encodePacket(TIME_SERVER_MSG_TYPE, { time: Date.now() })
++		console.log(decodePacket(msg))
+         this.udp.send(msg, this.broadcastPort, this.broadcastIP)
+     }
+     stop() {
